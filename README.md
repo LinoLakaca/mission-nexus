@@ -11,9 +11,9 @@ Cilj projekta bio je pronaći zanimljive lokacije koje bi rover trebao dodatno i
 Repozitorij je podijeljen u nekoliko mapa:
 
 ```text
-data/      - CSV datoteke s podacima
-src/       - Python kodovi
-assets/    - slike, grafovi i karta
+data      - CSV datoteke s podacima
+src       - Python kodovi
+assets    - slike, grafovi i karta
 README.md - opis projekta
 
 U mapi data/ nalaze se CSV datoteke s podacima.
