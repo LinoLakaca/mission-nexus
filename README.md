@@ -6,63 +6,78 @@ U ovom projektu radio sam analizu podataka za zamišljenu misiju rovera na Marsu
 
 Cilj projekta bio je pronaći zanimljive lokacije koje bi rover trebao dodatno istražiti. Nakon obrade podataka napravio sam grafove, kartu i JSON nalog koji se može poslati kao uputa roveru.
 
+---
+
 ## Struktura repozitorija
 
-Repozitorij je podijeljen u nekoliko mapa:
+Repozitorij je podijeljen u nekoliko ključnih direktorija:
 
-```text
-data      - CSV datoteke s podacima
-src       - Python kodovi
-assets    - slike, grafovi i karta
-README.md - opis projekta
 
-U mapi data/ nalaze se CSV datoteke s podacima.
-U mapi src/ nalaze se Python skripte koje sam koristio za generiranje, obradu i slanje podataka.
-U mapi assets/ nalaze se slike grafova i karta koje su korištene u README dokumentu.
+| Direktorij / Datoteka | Opis |
+| :--- | :--- |
+| `data/` | CSV datoteke s izvornim podacima misije. |
+| `src/` | Python skripte za generiranje, obradu i slanje podataka. |
+| `assets/` | Slike, generirani grafovi i karte korištene u dokumentaciji. |
+| `README.md` | Glavni opis projekta i prikaz rezultata analize. |
 
-Obrada podataka
+---
 
-Podatke sam učitao pomoću biblioteke pandas. Prvo sam provjerio kako tablice izgledaju, koliko imaju redaka i stupaca te koje se vrijednosti nalaze u njima.
+## Obrada podataka
 
-Nakon toga sam filtrirao podatke kako bih pronašao uzorke koji su najzanimljiviji za daljnju analizu. Gledao sam uzorke koji imaju bolju temperaturu tla, određenu količinu vode i pozitivan metanski senzor.
+Podatke sam učitao pomoću biblioteke `pandas`. Prvo sam provjerio kako tablice izgledaju, koliko imaju redaka i stupaca te koje se vrijednosti nalaze u njima.
 
-Primjer filtriranja kandidata:
+Nakon toga sam filtrirao podatke kako bih pronašao uzorke koji su najzanimljiviji za daljnju analizu. Gledao sam uzorke koji imaju povoljniju temperaturu tla, određenu količinu vode i pozitivan metanski senzor.
 
+### Primjer filtriranja kandidata
+
+```python
 kandidati = df[
     (df['Temp_Tla_C'] > -60) &
     (df['H2O_Postotak'] > 1.0) &
     (df['Metan_Senzor'] == 'Pozitivno')
 ]
+```
 
 Također sam uklonio očite greške u podacima, npr. nemoguće temperature ili neispravne pH vrijednosti. Takve vrijednosti mogu nastati zbog greške senzora i ne bi trebale utjecati na konačni rezultat.
 
-Grafovi i analiza
-Odnos temperature i vode
+---
 
+## Grafovi i analiza
+
+### Odnos temperature i vode
 Ovaj graf prikazuje odnos između temperature tla i postotka vode u uzorcima. Točke su označene prema tome je li metanski senzor bio pozitivan ili negativan. Pozitivni metanski rezultati su važni jer mogu označavati zanimljiva mjesta za daljnje istraživanje.
 
-Dubina bušenja
+![Odnos temperature i vode](assets/odnos_temp_voda.png)
 
+### Dubina bušenja
 Ovdje se vidi raspored uzoraka prema GPS koordinatama. Boja prikazuje dubinu bušenja. Na taj način se može vidjeti gdje su uzorci uzimani i koliko duboko je rover bušio.
 
-Kandidati za daljnje istraživanje
+![Dubina bušenja po koordinatama](assets/dubina_busenja.png)
 
+### Kandidati za daljnje istraživanje
 Na ovom grafu su posebno označene lokacije koje su odabrane kao kandidati. Crvene zvjezdice označavaju mjesta koja zadovoljavaju uvjete i koja bi rover trebao dodatno istražiti.
 
-Karta kratera Jezero
+![Kandidati za istraživanje](assets/kandidati_istrazivanje.png)
 
-Na ovoj slici su podaci prikazani na karti kratera Jezero. Za prikaz je korišten extent, što znači da su granice slike usklađene s najmanjim i najvećim GPS koordinatama iz podataka. Tako se točke mogu bolje prikazati na stvarnoj karti.
+### Karta kratera Jezero
+Na ovoj slici su podaci prikazani na karti kratera Jezero. Za prikaz je korišten `extent`, što znači da su granice slike usklađene s najmanjim i najvećim GPS koordinatama iz podataka. Tako se točke mogu bolje prikazati na stvarnoj karti.
 
-Metanski senzor
+![Karta kratera Jezero](assets/karta_kratera.png)
 
+### Metanski senzor
 Ovaj graf prikazuje gdje se pojavljuju pozitivna i negativna očitanja metana. Pozitivna očitanja su korisna jer pomažu u odabiru lokacija koje imaju veći potencijal za istraživanje.
 
-JSON Uplink
+![Prikaz očitanja metanskog senzora](assets/metan_senzor.png)
+
+---
+
+## JSON Uplink
 
 Nakon što su pronađeni kandidati, napravljen je JSON paket koji sadrži podatke za rover. U tom paketu nalaze se koordinate, ID uzorka i operacije koje rover treba napraviti.
 
-Primjer JSON strukture:
+### Primjer JSON strukture
 
+```json
 {
     "misija": "NEXUS-UPLINK",
     "posiljatelj": "Lino Lakača",
@@ -78,9 +93,12 @@ Primjer JSON strukture:
         }
     ]
 }
+```
 
+### Automatizacija izrade naloga
 Za izradu naloga koristio sam petlju, kako ne bih morao ručno pisati svaki uzorak. Program sam prolazi kroz sve kandidate i dodaje ih u listu naloga.
 
+```python
 for index, red in kandidati.iterrows():
     nalog = {
         "ID_Uzorka": int(red['ID_Uzorka']),
@@ -91,28 +109,37 @@ for index, red in kandidati.iterrows():
         "Operacije": ["NAVIGACIJA", "SONDIRANJE", "SLANJE_PODATAKA"]
     }
     lista_naloga.append(nalog)
-Problemi tijekom rada
-Problem 1: Greške u podacima
+```
 
+---
+
+## Problemi tijekom rada i rješenja
+
+### Problem 1: Greške u podacima
 U podacima su se pojavile neke vrijednosti koje nisu realne, npr. previsoka temperatura ili kriva pH vrijednost. To bi moglo pokvariti grafove i analizu.
+* **Rješenje:** Filtriranje takvih ekstremnih vrijednosti i njihovo izbacivanje iz daljnje analize.
 
-Rješenje je bilo filtrirati takve podatke i izbaciti ih iz daljnje analize.
+### Problem 2: Spajanje tablica
+Podaci o uzorcima i GPS lokacijama bili su u odvojenim CSV datotekama. Morao sam ih spojiti pomoću zajedničkog stupca `ID_Uzorka`.
 
-Problem 2: Spajanje tablica
-
-Podaci o uzorcima i GPS lokacijama bili su u odvojenim CSV datotekama. Morao sam ih spojiti pomoću zajedničkog stupca ID_Uzorka.
-
+```python
 df = pd.merge(df_gps, df_uzorci, on='ID_Uzorka')
-Problem 3: Slanje na server
+```
 
+### Problem 3: Slanje na server
 Kod slanja JSON paketa može doći do greške ako URL nije dobar ili ako server ne odgovara.
+* **Rješenje:** Implementacija `try-except` bloka kako bi se spriječio pad programa i osiguralo ispisivanje jasne poruke o pogrešci.
 
-Zato sam koristio try-except, da program ne prestane raditi odmah nego da ispiše grešku.
-
+```python
 try:
     odgovor = requests.post(url_servera, json=payload)
 except Exception as e:
     print(f"Veza sa serverom nije uspostavljena: {e}")
-Zaključak
+```
 
-Kroz ovaj projekt naučio sam kako se mogu obraditi CSV podaci pomoću Pythona, napraviti grafovi i izdvojiti najvažnije lokacije za rover. Također sam naučio kako se podaci mogu prikazati na karti i kako se može napraviti JSON nalog za slanje podataka. Projekt pokazuje kako se podaci mogu iskoristiti za donošenje odluka u robotskoj misiji.
+---
+
+## Zaključak
+
+Kroz ovaj projekt naučio sam kako se mogu obraditi CSV podaci pomoću Pythona, generirati vizualni izvještaji te izdvojiti najvažnije lokacije za rover. Također sam svladao mapiranje koordinata na stvarnu kartu kratera i strukturiranje automatiziranih JSON naloga za komunikaciju sa sustavima rovera.
+SON nalog za slanje podataka. Projekt pokazuje kako se podaci mogu iskoristiti za donošenje odluka u robotskoj misiji.
